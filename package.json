@@ -1,0 +1,15 @@
+{
+  "name": "app3-clown-samba",
+  "version": "1.0.0",
+  "description": "Clown samba joke machine with persistent DB",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "express": "^4.18.2",
+    "winston": "^3.11.0"
+  }
+}
