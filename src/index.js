@@ -307,11 +307,17 @@ function playDrum(time, type) {
   src.stop(time + dur);
 }
 
-function startSamba() {
+function stopSamba() {
+  clearInterval(sambaInterval);
+  sambaInterval = null;
+}
+
+// Always spawns notes — pass continuous=true to keep going until stopSamba().
+function startSamba(continuous) {
+  stopSamba(); // prevent interval leak
   initAudio();
   const bpm  = 132;
   const step = (60 / bpm) / 4;
-  // samba pattern (16 steps): kick, snare, hihat
   const K = [1,0,0,0, 1,0,0,1, 0,0,1,0, 1,0,0,0];
   const S = [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0];
   const H = [1,1,0,1, 1,1,0,1, 1,1,0,1, 1,1,0,1];
@@ -327,23 +333,22 @@ function startSamba() {
       idx++;
       next += step;
     }
-    if (musicOn) spawnNote();
+    spawnNote(); // always spawn notes while samba is playing
   }, 25);
-}
 
-function stopSamba() {
-  clearInterval(sambaInterval);
-  sambaInterval = null;
+  if (continuous) {
+    musicOn = true;
+    dance(99999);
+  }
 }
 
 btnMusic.addEventListener('click', () => {
-  musicOn = !musicOn;
-  if (musicOn) {
+  if (!musicOn) {
     btnMusic.textContent = '🔇 Samba OFF';
     btnMusic.style.background = 'linear-gradient(135deg,#ef4444,#991b1b)';
-    startSamba();
-    dance(99999);
+    startSamba(true);
   } else {
+    musicOn = false;
     btnMusic.textContent = '🎵 Samba ON';
     btnMusic.style.background = 'linear-gradient(135deg,#10b981,#0891b2)';
     stopSamba();
@@ -354,16 +359,29 @@ btnMusic.addEventListener('click', () => {
 
 // ── Jokes ──
 async function nouvelleBlague() {
-  btnPunch.style.display = 'none';
-  punchEl.classList.remove('visible');
-  setupEl.textContent = '🥁 Le clown cherche une blague…';
-  const res  = await fetch('/api/blague');
-  const data = await res.json();
-  currentBlague = data;
-  setupEl.textContent = data.setup;
-  punchEl.textContent = '';
-  btnPunch.style.display = 'inline-block';
-  counter.innerHTML = 'Total de blagues racontées : <strong>' + data.total + '</strong>';
+  try {
+    btnBlague.disabled = true;
+    btnPunch.style.display = 'none';
+    punchEl.classList.remove('visible');
+    setupEl.textContent = '🥁 Le clown cherche une blague…';
+
+    // Brief samba burst while fetching
+    if (!musicOn) { startSamba(); setTimeout(stopSamba, 1800); }
+    dance(2000);
+
+    const res = await fetch('/api/blague');
+    if (!res.ok) throw new Error(\`Erreur serveur \${res.status}\`);
+    const data = await res.json();
+    currentBlague = data;
+    setupEl.textContent = data.setup;
+    punchEl.textContent = '';
+    btnPunch.style.display = 'inline-block';
+    counter.innerHTML = 'Total de blagues racontées : <strong>' + data.total + '</strong>';
+  } catch (err) {
+    setupEl.textContent = \`❌ Impossible de charger une blague : \${err.message}\`;
+  } finally {
+    btnBlague.disabled = false;
+  }
 }
 
 function revelerChute() {
@@ -372,7 +390,8 @@ function revelerChute() {
   punchEl.classList.add('visible');
   btnPunch.style.display = 'none';
   dance(currentBlague.punch.length * 60 + 2500);
-  if (!musicOn) { initAudio(); startSamba(); setTimeout(stopSamba, 3000); }
+  // Play samba for the reveal duration
+  if (!musicOn) { startSamba(); setTimeout(stopSamba, 3500); }
   loadHistory();
 }
 
@@ -382,19 +401,21 @@ clown.addEventListener('click', () => dance(3000));
 
 // ── History ──
 async function loadHistory() {
-  const res  = await fetch('/api/historique');
-  const list = await res.json();
-  if (!list.length) {
-    historyEl.innerHTML = '<p style="color:#6b7280;font-size:.85rem">Aucune blague racontée pour l'instant.</p>';
-    return;
-  }
-  historyEl.innerHTML = list.map(b => \`
-    <div class="history-item">
-      <div class="h-setup">\${b.setup}</div>
-      <div class="h-punch">\${b.punch}</div>
-      <div class="h-time">\${new Date(b.told_at + 'Z').toLocaleString('fr-FR')}</div>
-    </div>
-  \`).join('');
+  try {
+    const res  = await fetch('/api/historique');
+    const list = await res.json();
+    if (!list.length) {
+      historyEl.innerHTML = '<p style="color:#6b7280;font-size:.85rem">Aucune blague racontée pour l\'instant.</p>';
+      return;
+    }
+    historyEl.innerHTML = list.map(b => \`
+      <div class="history-item">
+        <div class="h-setup">\${b.setup}</div>
+        <div class="h-punch">\${b.punch}</div>
+        <div class="h-time">\${new Date(b.told_at + 'Z').toLocaleString('fr-FR')}</div>
+      </div>
+    \`).join('');
+  } catch (_) {}
 }
 
 loadHistory();
