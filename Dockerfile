@@ -13,6 +13,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY src/ ./src/
 RUN mkdir -p /data && chown node:node /data
 EXPOSE 8080
-USER node
+USER 1000
 ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "src/index.js"]
