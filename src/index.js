@@ -405,7 +405,8 @@ async function loadHistory() {
     const res  = await fetch('/api/historique');
     const list = await res.json();
     if (!list.length) {
-      historyEl.innerHTML = '<p style="color:#6b7280;font-size:.85rem">Aucune blague racontée pour l\'instant.</p>';
+      historyEl.innerHTML = '<p style="color:#6b7280;font-size:.85rem">Aucune blague racontée pour l'instant.</p>';
+
       return;
     }
     historyEl.innerHTML = list.map(b => \`
