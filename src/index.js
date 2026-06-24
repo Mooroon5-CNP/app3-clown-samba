@@ -83,7 +83,9 @@ app.get('/', (_req, res) => {
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Segoe UI', sans-serif;
-      background: radial-gradient(ellipse at top, #1a0533 0%, #0d001a 100%);
+      background: ${process.env.DD_ENV === 'prod'
+        ? 'radial-gradient(ellipse at top, #064e3b 0%, #022c22 100%)'
+        : 'radial-gradient(ellipse at top, #1a0533 0%, #0d001a 100%)'};
       min-height: 100vh;
       display: flex;
       flex-direction: column;

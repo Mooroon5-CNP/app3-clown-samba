@@ -18,3 +18,25 @@ jobs:
       target_cloud: "gcp"
     secrets:
       CONFIG_REPO_TOKEN: ${{ secrets.CONFIG_REPO_TOKEN }}
+
+  update-prod-overlay:
+    needs: pipeline
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Mooroon5-CNP/config-repo
+          token: ${{ secrets.CONFIG_REPO_TOKEN }}
+      - name: Update prod kustomization image tag
+        run: |
+          sed -i 's|newTag:.*|newTag: "${{ github.sha }}"|' \
+            apps/app3-clown-samba/overlays/prod/kustomization.yaml
+          git config user.email "ci-bot@cnp"
+          git config user.name "CI Bot"
+          git add apps/app3-clown-samba/overlays/prod/kustomization.yaml
+          git diff --staged --quiet && exit 0
+          git commit -m "ci(app3-clown-samba): prod → ${{ github.sha }}"
+          for i in 1 2 3; do
+            git pull --rebase && git push && break || sleep 5
+          done
